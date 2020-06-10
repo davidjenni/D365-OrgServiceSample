@@ -1,4 +1,6 @@
 using System;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Net;
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -11,10 +13,24 @@ namespace OrgServiceSample
         [STAThread]
         public static void  Main(string[] args)
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            var password = args.Length > 0 ? args[0] : Environment.GetEnvironmentVariable("PA_BT_ORG_PASSWORD");
-            var username = "davidjen@davidjenD365.onmicrosoft.com";
-            var envUrl = new Uri("https://davidjenD365-1.crm.dynamics.com");
+            if (args.Length < 2 || (args.Length > 0 && string.CompareOrdinal(args[0], "-h") == 0))
+            {
+                Console.WriteLine($@"
+Usage:
+  {Process.GetCurrentProcess().ProcessName} <environmentUrl> <username> [ <password> ]
+
+option: instead of passing the password as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' with that password
+");
+                Environment.Exit(1);
+            }
+            var envUrl = new Uri(args.Length > 0 ? args[0] : "https://davidjenD365-1.crm.dynamics.com");
+            var username = args.Length > 1 ? args[1] : "davidjen@davidjenD365.onmicrosoft.com";
+            var password = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable("PA_BT_ORG_PASSWORD");
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                Console.WriteLine("Missing parameter 'password' (or set env variable: 'PA_BT_ORG_PASSWORD'");
+                Environment.Exit(1);
+            }
 
             var app = new Program();
             Console.WriteLine($"Connected to '{envUrl}': {app.Connect(envUrl, username, password)}");
@@ -47,11 +63,25 @@ namespace OrgServiceSample
 
         private static CrmServiceClient Create(Uri envUrl, string username, string password)
         {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             var promptBehavior = PromptBehavior.Never;
             var appId = "51f81489-12ee-4a9e-aaae-a2591f45987d";
-            var redirectUrl = "app://58145B91-0C36-4500-8554-080854F2AC97";
-            var connectionString = $"AuthType=OAuth;Username={username};Password={password};Url={envUrl};AppId={appId};RedirectUri={redirectUrl};LoginPrompt={promptBehavior}";
-            return new CrmServiceClient(connectionString);
+            var redirectUrl = new Uri("app://58145B91-0C36-4500-8554-080854F2AC97");
+
+            var builder = new DbConnectionStringBuilder
+            {
+                { "AuthType", "OAuth" },
+                { "Url", envUrl.AbsoluteUri },
+                { "RedirectUri", redirectUrl.AbsoluteUri },
+                { "LoginPrompt", promptBehavior.ToString() }
+            };
+
+            builder.Add("Username", username);
+            builder.Add("Password", password);
+            builder.Add("AppId", appId);
+
+            return new CrmServiceClient(builder.ConnectionString);
         }
     }
 }
