@@ -1,3 +1,4 @@
+// Copyright (c) 2020 David JENNI
 using System;
 using System.Data.Common;
 using System.Diagnostics;
@@ -17,30 +18,30 @@ namespace OrgServiceSample
             {
                 Console.WriteLine($@"
 Usage:
-  {Process.GetCurrentProcess().ProcessName} <environmentUrl> <username> [ <password> ]
+  {Process.GetCurrentProcess().ProcessName} <environmentUrl> <usernameOrAppId> [ <secret> ]
 
-option: instead of passing the password as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' with that password
+option: instead of passing the secret as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' with that secret
 ");
                 Environment.Exit(1);
             }
             var envUrl = new Uri(args.Length > 0 ? args[0] : "https://davidjenD365-1.crm.dynamics.com");
-            var username = args.Length > 1 ? args[1] : "davidjen@davidjenD365.onmicrosoft.com";
-            var password = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable("PA_BT_ORG_PASSWORD");
-            if (string.IsNullOrWhiteSpace(password))
+            var usernameOrAppId = args.Length > 1 ? args[1] : "2c6d7c95-ff20-4305-b87c-b97eb8277cf5";
+            var secret = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable("PA_BT_ORG_PASSWORD");
+            if (string.IsNullOrWhiteSpace(secret))
             {
-                Console.WriteLine("Missing parameter 'password' (or set env variable: 'PA_BT_ORG_PASSWORD'");
+                Console.WriteLine("Missing parameter 'secret' (or set env variable: 'PA_BT_ORG_PASSWORD'");
                 Environment.Exit(1);
             }
 
             var app = new Program();
-            Console.WriteLine($"Connected to '{envUrl}': {app.Connect(envUrl, username, password)}");
+            Console.WriteLine($"Connected to '{envUrl}': {app.Connect(envUrl, usernameOrAppId, secret)}");
 
             Console.Read();
         }
 
-        private bool Connect(Uri envUrl, string username, string password)
+        private bool Connect(Uri envUrl, string usernameOrAppId, string secret)
         {
-            using (var crmClient = Create(envUrl, username, password))
+            using (var crmClient = Create(envUrl, usernameOrAppId, secret))
             {
                 if (!crmClient.IsReady)
                 {
@@ -61,26 +62,42 @@ option: instead of passing the password as the third parameter, set an environme
             return true;
         }
 
-        private static CrmServiceClient Create(Uri envUrl, string username, string password)
+        private static CrmServiceClient Create(Uri envUrl, string usernameOrAppId, string secret)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             var promptBehavior = PromptBehavior.Never;
-            var appId = "51f81489-12ee-4a9e-aaae-a2591f45987d";
+            // clientID and redirect url are values configured in Microsoft's tenant that are functional for 3rd parties sample code
+            // please create specific clientID and redirect url in your PowerPlatform's AAD tenant
+            var clientId = "51f81489-12ee-4a9e-aaae-a2591f45987d";
             var redirectUrl = new Uri("app://58145B91-0C36-4500-8554-080854F2AC97");
 
             var builder = new DbConnectionStringBuilder
             {
-                { "AuthType", "OAuth" },
                 { "Url", envUrl.AbsoluteUri },
                 { "RedirectUri", redirectUrl.AbsoluteUri },
                 { "LoginPrompt", promptBehavior.ToString() }
             };
 
-            builder.Add("Username", username);
-            builder.Add("Password", password);
-            builder.Add("AppId", appId);
+            Console.WriteLine($"Connecting to env: {envUrl.AbsoluteUri}...");
+            var isAppUser = Guid.TryParse(usernameOrAppId, out var _);
+            if (isAppUser)
+            {
+                Console.WriteLine($"... authN using appId & clientSecret - {usernameOrAppId}");
+                builder.Add("AuthType", "ClientSecret");
+                builder.Add("AppId", usernameOrAppId);
+                builder.Add("ClientSecret", secret);
+            }
+            else
+            {
+                Console.WriteLine($"... authN using username & password - {usernameOrAppId}");
+                builder.Add("AuthType", "OAuth");
+                builder.Add("Username", usernameOrAppId);
+                builder.Add("Password", secret);
+                builder.Add("ClientId", clientId);
+            }
 
+            // if (isAppUser) { return new CrmServiceClient(envUrl, usernameOrAppId, secret, useUniqueInstance: true, string.Empty); }
             return new CrmServiceClient(builder.ConnectionString);
         }
     }
