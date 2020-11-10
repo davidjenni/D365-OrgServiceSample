@@ -1,25 +1,11 @@
+# http://aka.ms/yaml
+---
 trigger:
-- master
+- main
 
 pool:
   vmImage: 'windows-latest'
 
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
-
 steps:
-- task: DotNetCoreCLI@2
-  name: Restore
-  inputs:
-    command: 'restore'
-    projects: 'OrgServiceSample.csproj'
-    configuration: '$(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  name: Build
-  inputs:
-    command: 'build'
-    projects: 'OrgServiceSample.csproj'
-    arguments: '--configuration $(buildConfiguration)'
+- script: 'buildAndRun.cmd'
+  displayName: Build and run CDS sample exe

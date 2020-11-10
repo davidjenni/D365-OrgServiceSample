@@ -11,8 +11,10 @@ namespace OrgServiceSample
 {
     public class Program
     {
+        private static bool isAppUser;
+
         [STAThread]
-        public static void  Main(string[] args)
+        public static void Main(string[] args)
         {
             if (args.Length < 2 || (args.Length > 0 && string.CompareOrdinal(args[0], "-h") == 0))
             {
@@ -20,23 +22,25 @@ namespace OrgServiceSample
 Usage:
   {Process.GetCurrentProcess().ProcessName} <environmentUrl> <usernameOrAppId> [ <secret> ]
 
-option: instead of passing the secret as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' with that secret
+option: instead of passing the secret as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' or 'PA_BT_ORG_SPNKEY' with that secret
 ");
                 Environment.Exit(1);
             }
             var envUrl = new Uri(args.Length > 0 ? args[0] : "https://davidjenD365-1.crm.dynamics.com");
             var usernameOrAppId = args.Length > 1 ? args[1] : "2c6d7c95-ff20-4305-b87c-b97eb8277cf5";
-            var secret = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable("PA_BT_ORG_PASSWORD");
+            isAppUser = Guid.TryParse(usernameOrAppId, out var _);
+            var secret = args.Length > 2 ? args[2]
+                : Environment.GetEnvironmentVariable(isAppUser ? "PA_BT_ORG_SPNKEY" : "PA_BT_ORG_PASSWORD");
             if (string.IsNullOrWhiteSpace(secret))
             {
-                Console.WriteLine("Missing parameter 'secret' (or set env variable: 'PA_BT_ORG_PASSWORD'");
+                Console.WriteLine("Missing parameter 'secret' (or set env variable: 'PA_BT_ORG_PASSWORD' or 'PA_BT_ORG_SPNKEY'");
                 Environment.Exit(1);
             }
 
             var app = new Program();
-            Console.WriteLine($"Connected to '{envUrl}': {app.Connect(envUrl, usernameOrAppId, secret)}");
-
-            Console.Read();
+            var success = app.Connect(envUrl, usernameOrAppId, secret);
+            Console.WriteLine($"Connected to '{envUrl}': {success}");
+            Environment.Exit(success ? 0 : 1);
         }
 
         private bool Connect(Uri envUrl, string usernameOrAppId, string secret)
@@ -80,7 +84,6 @@ option: instead of passing the secret as the third parameter, set an environment
             };
 
             Console.WriteLine($"Connecting to env: {envUrl.AbsoluteUri}...");
-            var isAppUser = Guid.TryParse(usernameOrAppId, out var _);
             if (isAppUser)
             {
                 Console.WriteLine($"... authN using appId & clientSecret - {usernameOrAppId}");
