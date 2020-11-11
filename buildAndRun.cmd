@@ -10,7 +10,8 @@ dotnet build --configuration debug --output %_drop% OrgServiceSample.csproj
 
 @if exist %_log% del %_log%
 
-%_drop%\OrgServiceSample.exe %PA_BT_ORG_URL% %PA_BT_ORG_SPN_ID%
+@echo Launching exe...
+@%_drop%\OrgServiceSample.exe %PA_BT_ORG_URL% %PA_BT_ORG_SPN_ID%
 @if %ERRORLEVEL% NEQ 0 (set _rc=1)
 
 @echo .
