@@ -1,0 +1,13 @@
+# http://aka.ms/yaml
+---
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- script: 'buildAndRun.cmd'
+  displayName: Build and run CDS sample exe
+  env:
+    PA_BT_ORG_SPNKEY: $(PA_BT_ORG_SPNKEY)
