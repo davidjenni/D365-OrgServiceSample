@@ -11,7 +11,7 @@ dotnet build --configuration debug --output %_drop% OrgServiceSample.csproj
 @if exist %_log% del %_log%
 
 @echo Launching exe...
-@%_drop%\OrgServiceSample.exe %PA_BT_ORG_URL% %PA_BT_ORG_SPN_ID%
+@%_drop%\OrgServiceSample.exe %PA_BT_ORG_URL% %PA_BT_ORG_USER%
 @if %ERRORLEVEL% NEQ 0 (set _rc=1)
 
 @echo .
@@ -22,6 +22,5 @@ dotnet build --configuration debug --output %_drop% OrgServiceSample.csproj
 @exit /b %_rc%
 
 :usage
-    @echo "Must specify 3 pipeline/env variables: PA_BT_ORG_URL, PA_BT_ORG_SPN_ID, PA_BT_ORG_SPNKEY"
-    @echo "alternatively, for username/password authN: PA_BT_ORG_USER, PA_BT_ORG_PASSWORD"
+    @echo "Must specify 3 pipeline/env variables: PA_BT_ORG_URL, PA_BT_ORG_USER, PA_BT_ORG_SECRET"
     @exit /b 1

@@ -22,18 +22,17 @@ namespace OrgServiceSample
 Usage:
   {Process.GetCurrentProcess().ProcessName} <environmentUrl> <usernameOrAppId> [ <secret> ]
 
-option: instead of passing the secret as the third parameter, set an environment variable 'PA_BT_ORG_PASSWORD' or 'PA_BT_ORG_SPNKEY' with that secret
+option: instead of passing the secret as the third parameter, set an environment variable 'PA_BT_ORG_SECRET' with that secret
 ");
                 Environment.Exit(1);
             }
             var envUrl = new Uri(args.Length > 0 ? args[0] : "https://davidjenD365-1.crm.dynamics.com");
             var usernameOrAppId = args.Length > 1 ? args[1] : "2c6d7c95-ff20-4305-b87c-b97eb8277cf5";
             isAppUser = Guid.TryParse(usernameOrAppId, out var _);
-            var secret = args.Length > 2 ? args[2]
-                : Environment.GetEnvironmentVariable(isAppUser ? "PA_BT_ORG_SPNKEY" : "PA_BT_ORG_PASSWORD");
+            var secret = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable("PA_BT_ORG_SECRET");
             if (string.IsNullOrWhiteSpace(secret))
             {
-                Console.WriteLine("Missing parameter 'secret' (or set env variable: 'PA_BT_ORG_PASSWORD' or 'PA_BT_ORG_SPNKEY'");
+                Console.WriteLine("Missing parameter 'secret' (or set env variable: 'PA_BT_ORG_SECRET'");
                 Environment.Exit(1);
             }
 
